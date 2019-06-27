@@ -1,0 +1,70 @@
+//
+// Practice1_01: 1件のHTML文書を読み込み、その中に含まれる画像ファイル名と、
+//               その画像の周辺テキスト（alt属性のテキスト、親ノードのテキスト）を出力する
+//
+import org.cyberneko.html.parsers.DOMParser;
+import org.w3c.dom.*;
+import java.io.*;
+
+public class Practice1_01 {
+	public static void main(String args[]) throws Exception{
+		// DOMを解釈するパーサを準備
+		DOMParser parser = new DOMParser();
+		parser.setFeature("http://xml.org/sax/features/namespaces", false);
+
+		// 引数があれば第１引数をurlStrにセット、なければ"test.html"をセット
+		String urlStr = args.length>0 ? args[0] : "test.html";
+                System.out.println("SOURCE URL: " + urlStr);
+
+		// 出力ファイル名を生成
+		String resultFileName = urlStr.replaceAll("../data","../result").replaceAll("html$","image_and_text");
+		System.out.println(resultFileName);
+
+		try {
+			// 出力ファイルをオープン
+			FileOutputStream fos = new FileOutputStream(resultFileName);
+			OutputStreamWriter osw = new OutputStreamWriter(fos , "UTF-8");
+			BufferedWriter bw = new BufferedWriter(osw);
+
+			// urlStrのファイルをパーサで読み込み、parserにDOMツリーを生成
+			parser.parse(urlStr);
+			// parser内のDOMツリーのドキュメントノードをdocumentにセットする
+			Document document = parser.getDocument();
+			// "img"をタグ名にもつ要素を全て取得する
+			NodeList nodeList = document.getElementsByTagName("img");
+
+			// 各要素の画像ファイル名と周辺テキストを出力ファイルに出力する
+			for(int i=0; i < nodeList.getLength(); i++){
+				Element element = (Element)nodeList.item(i);
+
+				// 画像ファイル名をsrcNameにセットする
+				String srcName = element.getAttribute("src");
+				// 画像ファイル名がない、あるいは、先頭が"test_data"で始まらない場合は、何も出力せず、次のループへ
+       			if(srcName.length()<=0 || !srcName.startsWith("test_data")) {
+					continue;
+				}
+				// 画像ファイル名の先頭に"../data"をつける
+				srcName = "../data/" + srcName;
+
+				// altテキストをtextAltにセットする
+				String textAlt = element.getAttribute("alt").replaceAll("[\\s\u00A0\u2002-\u200B\u202F\u3000]","");
+				// 該当する周辺テキストがない場合は"NONE"をセットする
+				textAlt = textAlt.length()>0 ? textAlt : "NONE";
+
+				// 親ノードのテキストをtextParにセットする
+				String textPar = element.getParentNode().getTextContent().replaceAll("[\\s\u00A0\u2002-\u200B\u202F\u3000]","");
+				// 該当する周辺テキストがない場合は"NONE"をセットする
+				textPar = textPar.length()>0 ? textPar : "NONE";
+
+				// 画像ファイル名、altテキスト、親ノードのテキストを指定の形式でoutTextにセット
+				String outText = srcName + "\t" + textAlt + "\t" + textPar + "\n";
+				// outTextを出力ファイルに出力
+				bw.write(outText);
+			}
+			// 出力が完了したら出力ファイルを閉じる
+			bw.close();
+			osw.close();
+			fos.close();
+		} catch(Exception e) { e.printStackTrace(); } // 例外発生時の状況を表示する
+	}
+}
